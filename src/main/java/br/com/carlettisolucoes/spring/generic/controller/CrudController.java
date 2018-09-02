@@ -1,8 +1,11 @@
 package br.com.carlettisolucoes.spring.generic.controller;
 
 import java.net.URI;
+import java.security.InvalidParameterException;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,6 +22,8 @@ public abstract class CrudController<T extends CrudModel<ID>, ID> {
 
 	private CrudService<T, ID> service;
 	
+	private static final Logger log = LoggerFactory.getLogger(CrudService.class);
+	
 	@Autowired
 	public CrudController(CrudService<T, ID> service) {
 		this.service = service;
@@ -31,8 +36,16 @@ public abstract class CrudController<T extends CrudModel<ID>, ID> {
 	
 	@RequestMapping(method=RequestMethod.POST)
 	public ResponseEntity<Void> create(@RequestBody T t) {
-		T obj = service.create(t);
-		return ResponseEntity.created(uriLocationResponse(obj.getId())).build();
+		try {
+			T obj = service.create(t);
+			return ResponseEntity.created(uriLocationResponse(obj.getId())).build();
+		} catch (IllegalArgumentException e) {
+			log.error(e.getMessage(), e);
+			throw new InvalidParameterException(e.getMessage());
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			throw e;
+		}
 	}
 		
 	@RequestMapping(method=RequestMethod.GET, value="/{id}")
